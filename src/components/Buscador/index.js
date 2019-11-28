@@ -4,23 +4,22 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import 'react-light-accordion/demo/css/index.css';
 import "bootstrap";
+import InfiniteScroll from "react-infinite-scroll-component";
 import { Card, CardImg, Button, Popover, PopoverHeader, PopoverBody } from 'reactstrap';
 import Alert from 'react-bootstrap/Alert';
 import Cookies  from 'universal-cookie'; 
 
 var cookie = new Cookies;
 
+
 function startFollowing(item, token) {
 
   console.log(item);
   item = JSON.stringify(item);
-  fetch('https://pruebaenreact.azurewebsites.net/items/startFollowing', {
-    item, 
-    token 
-  })
-  .then(function (data) {
-    //this.props.history.push('/FollowingItems');
-  });
+  axios.post('http://localhost:4000/items/startFollowing', { item, token })
+    .then(function (data) {
+      //this.props.history.push('/FollowingItems');
+    });
 
 }
 
@@ -54,6 +53,7 @@ class Buscador extends Component {
       text: '',
       items: [],
       popoverOpen: false,
+      hasMore: true,
       first: false,
       userok: ''
 
@@ -62,6 +62,8 @@ class Buscador extends Component {
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
+
+
   toggle() {
     this.setState({
       popoverOpen: !this.state.popoverOpen
@@ -69,28 +71,78 @@ class Buscador extends Component {
   }
 
   componentDidMount() {
-
-    axios.get('https://pruebaenreact.azurewebsites.net/items/searchItems/' + localStorage.getItem('seller'))
-      .then(res => {
-        if (!isEmptyObject(res.data)) this.setState({ items: res.data, userok: 'true'});
-      })
-      .catch(function (err) {
-        console.log(err);
-      })
-      if(!this.state.first) this.setState({userok: 'false'}); else this.setState({first: false});
-
+    axios.get('http://localhost:4000/items/searchItems/' + localStorage.getItem('seller') + "&offset=" + localStorage.getItem('offset')) 
+    
+    //console.log(res.total)
+    .then(res => {
+    
+      if (!isEmptyObject(res.data)) this.setState({ items: res.data, userok: 'true'}); 
+      console.log(res.data)
+      
+    })
+    .catch(function (err) {
+      console.log(err);
+    })
+    if(!this.state.first) this.setState({userok: 'false'}); else this.setState({first: false});
+      
+      
+      
+    //axios.get('https://api.mercadolibre.com/sites/MLA/search?nickname=' + localStorage.getItem('seller'))
+    //.then(res => {
+    //  
+    //  cantidadDeResultadosTotales = res.data.paging.total;
+    //  
+    //}) 
+    
   }
 
   itemList() {
 
     return this.state.items.map(function (citem, i) {
       return <Item item={citem} key={i} />;
+      
     })
 
   }
+  fetchMoreData = () => {
+  
+   if (this.state.items.length !== 0) {
+     var aux = parseInt(localStorage.getItem('offset')) + 50;
+     parseInt(localStorage.setItem('offset', aux));
+   }
+   
+    axios.get('http://localhost:4000/items/searchItems/' + localStorage.getItem('seller') + "&offset=" + parseInt(aux))
+    .then(res => {
+      
+      
+      this.setState({ items: this.state.items.concat(Array.from(res.data)) , userok: 'true'});
+      console.log(aux);
+      console.log(res.data);
+      console.log("HOLA");
+      console.log(localStorage.getItem('offset'))
+      console.log(this.state.items.concat(Array.from(res.data)))
+    })
+    
+    
+    
+    if (this.state.items.length >= localStorage.getItem ('cantidadDeResultadosTotales')) {
+      this.setState({ hasMore: false });
+      return;
+    }
+    // a fake async api call like which sends
+    // 20 more records in .5 secs
+    
+      this.setState({
+       items:  []
+      }); 
+      
+      
 
+      // offset = offset + 50
+    
+  };
   render() {
-
+    
     var alerta;
     if (this.state.userok === ''){
       alerta = <div className = "puntitos">...</div>
@@ -148,7 +200,23 @@ class Buscador extends Component {
 
           </thead>
           <tbody>
-            {this.itemList()}
+          <InfiniteScroll
+          dataLength={this.state.items.length}
+          next={this.fetchMoreData}
+          hasMore={this.state.hasMore}
+          loader={<h4>Loading...</h4>}
+          endMessage={
+            <p style={{ textAlign: "center" }}>
+              <b>Yay! You have seen it all</b>
+            </p>
+          }
+          >
+          
+          {this.itemList()}
+          
+          
+        </InfiniteScroll>
+        
           </tbody>
 
         </table>
@@ -175,7 +243,9 @@ class Buscador extends Component {
     }
     var username = this.state.text;
     localStorage.setItem('seller', username)
-    /*axios.get('https://pruebaenreact.azurewebsites.net/items/searchItems/' + username)
+    parseInt(localStorage.setItem('offset', 0))
+    localStorage.setItem ('cantidadDeResultadosTotales', 150)
+    /*axios.get('http://localhost:4000/items/searchItems/' + username)
       .then(setTimeout(function () {*/
         window.location.reload()
       //}.bind(this), 1000));
@@ -187,7 +257,7 @@ class Buscador extends Component {
     if (!this.state.text.length) {
       return;
     }
-    axios.post('https://pruebaenreact.azurewebsites.net/MLfollowing/add', { _name: this.state.text })
+    axios.post('http://localhost:4000/MLfollowing/add', { _name: this.state.text })
       .then(function () { window.location.reload(); });
 
   }
