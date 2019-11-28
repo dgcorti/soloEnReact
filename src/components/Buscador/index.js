@@ -53,7 +53,7 @@ class Buscador extends Component {
       text: '',
       items: [],
       popoverOpen: false,
-      hasMore: true,
+      hasMore: true, //hasmore es una propiedad dentro de la función fetchMoreData. Es un boolean que dice si hay más items para cargar o si no los hay.
       first: false,
       userok: ''
 
@@ -104,27 +104,32 @@ class Buscador extends Component {
     })
 
   }
+  
+  //En fecthMoreData, se cargan más datos cada vez que se llegan a visualizar los cincuenta resultados mostrados.
   fetchMoreData = () => {
   
+    //Si hay items para mostrar (si la cantidad de publicaciones del vendedor es diferente de cero), se crea un contador llamado aux, que le suma '50' al valor actual del offset cada vez que llega al final de página. El offset es el parámetro que tiene MercadoLibre para determinar desde dónde empezar a mostrar los productos. Si yo pongo un offset de valor "0", se muestran los primeros cincuenta productos (0-49). Si yo pongo un offset "50", se podrán ver los segundos cincuenta productos (50-99). Se repite sucesivamente de esta forma, hasta que se alcanza el límite de productos encontrados para ese vendedor.
    if (this.state.items.length !== 0) {
      var aux = parseInt(localStorage.getItem('offset')) + 50;
      parseInt(localStorage.setItem('offset', aux));
    }
    
+    
+    //Busca los resultados en localhost que coincidan con los resultados de búsqueda del usuario.
     axios.get('http://localhost:4000/items/searchItems/' + localStorage.getItem('seller') + "&offset=" + parseInt(aux))
     .then(res => {
       
       
-      this.setState({ items: this.state.items.concat(Array.from(res.data)) , userok: 'true'});
-      console.log(aux);
-      console.log(res.data);
-      console.log("HOLA");
-      console.log(localStorage.getItem('offset'))
-      console.log(this.state.items.concat(Array.from(res.data)))
+      this.setState({ items: this.state.items.concat(Array.from(res.data)) , userok: 'true'}); //Guarda un array de caracteres extraido de "res.data", los concatena y los guarda en "items". Esto lo hace para que el programa sepa de dónde sacar las publicaciones del vendedor.
+      //console.log(aux);
+      //console.log(res.data);
+      //console.log("HOLA");
+      //console.log(localStorage.getItem('offset'))
+      //console.log(this.state.items.concat(Array.from(res.data)))
     })
     
     
-    
+    //Si la cantidad de items es mayor o igual a "cantidadDeResultadosTotales" (esta variable guarda la cantidad de publicaciones totales del vendedor), setState se pone en falso, porque no hay más resultados que mostrar.
     if (this.state.items.length >= localStorage.getItem ('cantidadDeResultadosTotales')) {
       this.setState({ hasMore: false });
       return;
@@ -132,13 +137,13 @@ class Buscador extends Component {
     // a fake async api call like which sends
     // 20 more records in .5 secs
     
+    
+    
+    //Muestra los items obtenidos anteriormente
       this.setState({
        items:  []
       }); 
       
-      
-
-      // offset = offset + 50
     
   };
   render() {
@@ -200,14 +205,16 @@ class Buscador extends Component {
 
           </thead>
           <tbody>
+          
+          //El componente en HTML
           <InfiniteScroll
           dataLength={this.state.items.length}
           next={this.fetchMoreData}
           hasMore={this.state.hasMore}
-          loader={<h4>Loading...</h4>}
+          loader={<h4>Cargando...</h4>}
           endMessage={
             <p style={{ textAlign: "center" }}>
-              <b>Yay! You have seen it all</b>
+              <b>Llegaste al final de página</b>
             </p>
           }
           >
