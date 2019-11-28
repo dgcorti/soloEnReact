@@ -212,10 +212,12 @@ class Buscador extends Component {
           }
           >
           
-          {this.itemList()}
+          
           
           
         </InfiniteScroll>
+
+        {this.itemList()}
         
           </tbody>
 
